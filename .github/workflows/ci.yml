@@ -1,0 +1,117 @@
+name: CI/CD Pipeline
+
+# Trigger the workflow on push to any branch and pull requests
+on:
+  push:
+    branches: [ "main", "session1", "develop" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Environment variables for the entire workflow
+env:
+  PYTHON_VERSION: "3.12"
+  STRESS_TEST_FLAG: "true"
+
+jobs:
+  test:
+    name: Run Tests and Security Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Checkout the repository code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # Set up Python environment
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    # Cache pip dependencies for faster builds
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    # Install dependencies
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        # Install testing and security tools
+        pip install pytest httpx black flake8 detect-secrets bandit pip-audit
+
+    # Run unit tests with pytest
+    - name: Run Unit Tests
+      run: |
+        chmod +x ./run_pytest.sh
+        ./run_pytest.sh
+
+    # Run security and quality checks
+    - name: Run Security and Quality Tests
+      run: |
+        chmod +x ./run_security_tests.sh
+        ./run_security_tests.sh
+
+    # Upload test reports as artifacts (optional)
+    - name: Upload Security Reports
+      if: always()  # Run even if previous steps fail
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          pip-audit-report.json
+        retention-days: 30
+
+    # Comment on PR with test results (optional)
+    - name: Comment Test Results
+      if: github.event_name == 'pull_request' && failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '❌ CI/CD Pipeline failed. Please check the workflow logs for details.'
+          })
+
+  # Additional job for deployment (runs only on main branch)
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: test  # Only run if tests pass
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Mock deployment step - replace with your actual deployment
+    - name: Deploy to Production
+      run: |
+        echo "🚀 Deploying application to production..."
+        echo "Application deployed successfully!"
+        # Add your actual deployment commands here
+        # Example: docker build, push to registry, deploy to cloud, etc.
+
+    # Notify deployment success
+    - name: Deployment Success Notification
+      run: |
+        echo "✅ Deployment completed successfully"
+        echo "Application is now live at your production URL"
