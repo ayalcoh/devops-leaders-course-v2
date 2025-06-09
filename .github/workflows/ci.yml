@@ -60,7 +60,7 @@ jobs:
     # Upload test reports as artifacts (optional)
     - name: Upload Security Reports
       if: always()  # Run even if previous steps fail
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
