@@ -73,7 +73,7 @@ echo
 install_if_missing "flake8" "pip install flake8"
 if [ $? -eq 0 ]; then
     echo "Running Flake8 linting..."
-    flake8 . --exclude=venv --max-line-length=88 --extend-ignore=E203,W503
+    flake8 .
     rc=$?
     record_result "Linting (Flake8)" $rc
     if [ $rc -ne 0 ]; then 

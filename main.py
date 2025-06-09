@@ -1,7 +1,6 @@
 import os
 import multiprocessing
 import time
-import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -94,7 +93,8 @@ async def start_cpu_stress(duration: int = 10, load: int = 100):
             status_code=403, detail="CPU stress test feature is disabled"
         )
 
-    global cpu_stress_processes, global_iterations, stop_flag, cpu_stress_end_time, cpu_stress_status_data
+    global cpu_stress_processes, global_iterations, stop_flag, cpu_stress_end_time
+    global cpu_stress_status_data
     if duration <= 0 or not (0 <= load <= 100):
         raise HTTPException(
             status_code=400, detail="Invalid duration or load parameter"
